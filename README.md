@@ -1,4 +1,4 @@
-# MATLAB Parallel Server on Microsoft Azure (Linux VM)
+# MATLAB Parallel Server on Microsoft Azure
 
 # Requirements
 
@@ -22,6 +22,7 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 
 | Linux | Windows |
 | ----- | ------- |
+| [R2022b](releases/R2022b/README.md) | [R2022b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2022b/README.md) |
 | [R2022a](releases/R2022a/README.md) | [R2022a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2022a/README.md) |
 |  | [R2021b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2021b/README.md) |
 |  | [R2021a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2021a/README.md) |
@@ -67,6 +68,20 @@ The following resources are created.
     * Used to distribute the Shared Secret created by headnode to all worker VMs. The Shared Secret is required for worker instances to register and establish a secure connection with the job scheduler.
     * Used to distribute the Cluster Profile to clients. The Cluster Profile is required to authenticate that a user has permission to connect to the cluster.
     * Files uploaded to this File Share will be available to all workers.
+
+## FAQ
+
+### What skills or specializations do I need to use this Reference Architecture?
+
+No programming or cloud experience required. 
+
+### How long does this process take?
+
+If you already have an Azure account set up and ready to use, you can start a MATLAB Parallel Server Reference Architecture cluster in less than 15 minutes. Startup time will vary depending on the size of your cluster.
+
+### How do I manage limits? 
+
+To learn about setting quotas, see [Azure subscription and service limits](https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-subscription-service-limits).
 
 # Technical Support
 If you require assistance or have a request for additional features or capabilities, please contact [MathWorks Technical Support](https://www.mathworks.com/support/contact_us.html).
