@@ -17,7 +17,7 @@
       "maxValue": 1000,
       "type": "Int",
       "metadata": {
-        "description": "Number of Azure instances to start for the workers to run on."
+        "description": "Number of Azure virtual machines to start for the workers to run on."
       }
     },
     "minWorkerNodes": {
@@ -26,7 +26,7 @@
       "maxValue": 1000,
       "type": "Int",
       "metadata": {
-        "description": "Minimum number of Azure instances running at all times."
+        "description": "Minimum number of running Azure virtual machines."
       }
     },
     "maxWorkerNodes": {
@@ -35,7 +35,7 @@
       "maxValue": 1000,
       "type": "Int",
       "metadata": {
-        "description": "Maximum number of Azure instances running at all times."
+        "description": "Maximum number of running Azure virtual machines."
       }
     },
     "numWorkersPerNode": {
@@ -44,21 +44,21 @@
       "maxValue": 1000,
       "type": "Int",
       "metadata": {
-        "description": "Number of MATLAB workers to start on each instance. Specify 1 worker for every 2 vCPUs, because this results in 1 worker per physical core. For example, a Standard_D64s_v3 virtual machine has 64 vCPUs, so can support 32 MATLAB workers. See https://learn.microsoft.com/azure/virtual-machines/sizes for details on vCPUs for each VM size."
+        "description": "Number of MATLAB workers to start on each virtual machine (VM). Specify 1 worker for every 2 vCPUs so that each physical core has one worker. For example, a Standard_D64s_v3 virtual machine has 64 vCPUs, so it can support 32 MATLAB workers. See https://learn.microsoft.com/azure/virtual-machines/sizes for details on vCPUs for each VM size."
       }
     },
     "headnodeVMSize": {
       "defaultValue": "Standard_D4s_v3",
       "type": "String",
       "metadata": {
-        "description": "Azure VM size to use for the headnode, which runs the job manager. No workers are started on this node, so this can be a smaller instance type than the worker nodes. By default, the heap memory for the job manager is set between 1024 MiB and a maximum of half of the instance memory, depending on the total number of MATLAB workers. See  https://learn.microsoft.com/azure/virtual-machines/sizes for a list of instance types."
+        "description": "Azure virtual machine (VM) size to use for the head node, which runs the job manager. No workers are started on this node, so this can be a smaller VM type than the worker nodes. By default, the heap memory for the job manager is set between 1024 MiB and a maximum of half of the VM memory, depending on the total number of MATLAB workers. See https://learn.microsoft.com/azure/virtual-machines/sizes for a list of VMs."
       }
     },
     "workerVMSize": {
       "defaultValue": "Standard_F4s_v2",
       "type": "String",
       "metadata": {
-        "description": "Azure VM size to use for the workers. By default, the heap memory for all worker process is set between 1024 MiB and a maximum of a quarter of the instance memory, depending on the number of MATLAB workers on the VM. See https://learn.microsoft.com/azure/virtual-machines/sizes for a list of instance types."
+        "description": "Azure virtual machine (VM) size to use for the workers. By default, the heap memory for all worker process is set between 1024 MiB and a maximum of a quarter of the VM memory, depending on the number of MATLAB workers on the VM. See https://learn.microsoft.com/azure/virtual-machines/sizes for a list of VMs."
       }
     },
     "useSpotInstancesForWorkerNodes": {
@@ -78,7 +78,7 @@
       "maxValue": 1023,
       "type": "Int",
       "metadata": {
-        "description": "Size in GB of the volume to use for the database file. All job and task information, including input and output data is stored on this volume and should therefore have enough capacity to store the expected amount of data. If set to 0, no volume is created and the root volume of the instance is used for the database."
+        "description": "Size in GB of the volume to use for the database file. All job and task information, including input and output data, is stored on this volume and so it must have enough capacity to store the expected amount of data. If set to 0, no volume is created and the root volume of the instance is used for the database."
       }
     },
     "sharedPersistedStorage": {
@@ -90,30 +90,31 @@
         "description": "Size in GB of the persisted storage to mount across the cluster. The storage has a default and minimum capacity of 100 GB and can expand to 100 TB. If set to 0, no persisted storage is created."
       }
     },
-    "clientIPAddress": {
-      "minLength": 1,
-      "type": "String",
+    "clientIPAddressList": {
+      "type": "string",
+      "defaultValue": "",
+      "minLength": 7,
       "metadata": {
-        "description": "IP address range that can be used to access the cluster from MATLAB. This must be a valid IP CIDR range of the form x.x.x.x/x. Use the value &lt;your_public_ip_address&gt;/32 to restrict access to only your computer."
+        "description": "A list of comma separated IP address ranges that can be used to access the license manager. These must be valid IP CIDR ranges of the form x.x.x.x/x. Use the value &lt;your_client_ip_address&gt;/32 to restrict access to only your computer."
       }
     },
     "adminUsername": {
       "type": "String",
       "defaultValue": "ubuntu",
       "metadata": {
-        "description": "Admin username for the cluster. To avoid any deployment errors, please check the list of [disallowed values](https://docs.microsoft.com/en-us/rest/api/compute/virtual-machines/create-or-update?tabs=HTTP#osprofile) for adminUsername."
+        "description": "Admin username for the cluster. To avoid any deployment errors, check the list of [disallowed values](https://docs.microsoft.com/en-us/rest/api/compute/virtual-machines/create-or-update?tabs=HTTP#osprofile) for adminUsername."
       }
     },
     "adminPassword": {
       "type": "SecureString",
       "metadata": {
-        "description": "Choose the password for the admin user of the cluster. This password and the chosen admin username are required to login into any instance in the cluster using ssh. For the deployment to succeed, your password must meet Azure's password requirements. See [Password requirements when creating a VM](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/faq?WT.mc_id=Portal-fx#what-are-the-password-requirements-when-creating-a-vm-) for information on the password requirements."
+        "description": "Choose the password for the admin user of the cluster. This password and the chosen admin username are required to log in into any instance in the cluster using ssh. For the deployment to succeed, your password must meet Azure's password requirements. See [Password requirements when creating a VM](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/faq?WT.mc_id=Portal-fx#what-are-the-password-requirements-when-creating-a-vm-) for information on the password requirements."
       }
     },
     "virtualNetworkResourceID": {
       "type": "String",
       "metadata": {
-        "description": "Resource ID of an existing virtual network to deploy your cluster into. You can find this under the Properties of your virtual network."
+        "description": "Resource ID of an existing virtual network to deploy your cluster into. You can find this ID under the properties of your virtual network."
       }
     },
     "subnetName": {
@@ -127,7 +128,7 @@
       "defaultValue": "",
       "type": "String",
       "metadata": {
-        "description": "License Manager for MATLAB in the form port@hostname. If not specified, online licensing is used. Otherwise, the license manager must be accessible from the specified virtual network and subnet(s)."
+        "description": "License manager for MATLAB in the form port@hostname. If not specified, online licensing is used. Otherwise, the license manager must be accessible from the specified virtual network and subnets."
       }
     },
     "MJSSecurityLevel": {
@@ -186,12 +187,12 @@
       ],
       "type": "String",
       "metadata": {
-        "description": "Option to auto-terminate the cluster after a few hours or when idle. When the cluster is terminated, all worker nodes are deleted and the headnode is deallocated. Select 'Never' to disable auto-termination now but you can enable it later. Select 'Disable auto-termination' to fully disable this feature or if you do not have the permissions to create and assign roles in your subscription. For more information, see [Automatically terminate the MATLAB Parallel Server cluster](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure-lin#automatically-terminate-the-matlab-parallel-server-cluster)."
+        "description": "Option to autoterminate the cluster after a few hours or when idle. When the cluster is terminated, all worker nodes are deleted and the headnode is deallocated. Select 'Never' to disable auto-termination now but you can enable it later. Select 'Disable auto-termination' to fully disable this feature or if you do not have the permissions to create and assign roles in your subscription. For more information, see [Automatically terminate the MATLAB Parallel Server cluster](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure-lin#automatically-terminate-the-matlab-parallel-server-cluster)."
       }
     },
     "MJSSchedulingAlgorithm": {
       "metadata": {
-        "description": "Scheduling algorithm for the job manager. 'standard' spreads communicating jobs across as few worker machines as possible to reduce communication overheads and fills in unused spaces on worker machines with independent jobs. Suitable for good behaviour for a wide range of uses including autoscaling. 'loadBalancing' distributes load evenly across the cluster to give as many resources as possible to running jobs and tasks when the cluster is underutilized."
+        "description": "Scheduling algorithm for the job manager. 'standard' spreads communicating jobs across as few worker machines as possible to reduce communication overheads and fills in unused spaces on worker machines with independent jobs. Suitable for good behavior for a wide range of uses including autoscaling. 'loadBalancing' distributes load evenly across the cluster to give as many resources as possible to running jobs and tasks when the cluster is underutilized."
       },
       "type": "String",
       "allowedValues": [
@@ -204,7 +205,7 @@
       "defaultValue": "",
       "type": "String",
       "metadata": {
-        "description": "Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AZURE, use this command excluding the angle brackets: &lt;echo -e \"export CLOUD=AZURE\" &#124; sudo tee -a /etc/profile.d/setenvvar.sh && source /etc/profile&gt;. To run an external script, use this command excluding the angle brackets: &lt;wget -O /tmp/my-script.sh \"https://example.com/script.sh\" && bash /tmp/my-script.sh&gt;. Find the logs at '/var/log/mathworks.log'."
+        "description": "Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AZURE, use this command excluding the angle brackets: &lt;echo -e \"export CLOUD=AZURE\" &#124; sudo tee -a /etc/profile.d/setenvvar.sh&gt;. To run an external script, use this command excluding the angle brackets: &lt;wget -O /tmp/my-script.sh \"https://example.com/script.sh\" && bash /tmp/my-script.sh&gt;. Find the logs at '/var/log/mathworks/user-data.log' and '/var/log/mathworks/startup.log'."
       }
     },
     "ClusterLogLevel": {
@@ -222,6 +223,13 @@
         "6-Highest"
       ],
       "defaultValue": "2-Low"
+    },
+    "imageID": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional Resource ID of a custom managed image in the target region. To use a prebuilt MathWorks image instead, leave this field empty. If you customize the build, for example by removing or modifying the included scripts, this can make the image incompatible with the provided ARM template. To ensure compatibility, modify the ARM template or image accordingly."
+      }
     }
   },
   "variables": {
@@ -243,13 +251,17 @@
     "publisher": "mathworks-inc",
     "offer": "matlab-parallel-server-ref-arch-vm-offer",
     "sku": "matlab-parallel-server-ref-arch-r2024a-vm-sku",
-    "version": "1.0.1",
-    "imageReference": {
+    "version": "20241.1.25040856",
+    "imageResourceID": {
+      "id": "[parameters('imageID')]"
+    },
+    "defaultImageReference": {
       "publisher": "[variables('publisher')]",
       "offer": "[variables('offer')]",
       "sku": "[variables('sku')]",
       "version": "[variables('version')]"
     },
+    "imageReference": "[if(empty(parameters('imageId')), variables('defaultImageReference'), variables('imageResourceID'))]",
     "plan": {
       "name": "[variables('sku')]",
       "publisher": "[variables('publisher')]",
@@ -298,6 +310,12 @@
       "#!/usr/bin/env bash",
       "# Copyright 2024 The MathWorks, Inc.",
       "",
+      "# Redirect all output to a log file",
+      "mkdir -p /var/log/mathworks",
+      "exec > >(tee -a /var/log/mathworks/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+      "PS4='+ [\\d \\t] '",
+      "set -x",
+      "",
       "STARTUP_FOLDER=/opt/mathworks/startup",
       "# Load startup variables",
       "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
@@ -314,12 +332,19 @@
       "[concat('export SECURITY_LEVEL=', parameters('MJSSecurityLevel'))]",
       "[concat('export SCHEDULING_ALGORITHM=', parameters('MJSSchedulingAlgorithm'))]",
       "[concat('export AZURE_STORAGE_ACCOUNT=', variables('storageAccountName'))]",
-      "[concat('export OPTIONAL_USER_COMMAND=''', parameters('optionalUserCommand'), '''')]",
+      "[concat('export OPTIONAL_USER_COMMAND=''', base64(parameters('optionalUserCommand')), '''')]",
       "[concat('export CLUSTER_LOG_LEVEL=', parameters('ClusterLogLevel'))]",
       "{{NODE_SPECIFIC_PARAMETERS}}",
       "",
+      "# Decode and execute the optional user command",
+      "if [[ -n \"${OPTIONAL_USER_COMMAND}\" ]]; then",
+      "    echo 'Decoding and executing optional user command...'",
+      "    DECODED_COMMAND=$(echo ${OPTIONAL_USER_COMMAND} | base64 --decode)",
+      "    eval \"${DECODED_COMMAND}\"",
+      "    source /etc/profile",
+      "fi",
+      "",
       "# Run startup scripts",
-      "mkdir -p /var/log/mathworks",
       "run-parts --verbose --exit-on-error --regex '^[0-9]+_.+$' ${STARTUP_FOLDER} >> /var/log/mathworks/startup.log 2>&1"
     ],
     "terminationPolicy": "[if(equals(parameters('automaticallyTerminateCluster'), 'When cluster is idle'), 'on_idle', if(equals(parameters('automaticallyTerminateCluster'),'Never'),'never',parameters('automaticallyTerminateCluster')))]",
@@ -515,7 +540,7 @@
             "name": "default-allow-ssh",
             "properties": {
               "priority": 1000,
-              "sourceAddressPrefix": "[parameters('clientIPAddress')]",
+              "sourceAddressPrefixes": "[split(replace(parameters('clientIPAddressList'),' ', ''), ',')]",
               "protocol": "Tcp",
               "destinationPortRange": "22",
               "access": "Allow",
@@ -528,7 +553,7 @@
             "name": "mathworks-job-scheduler-inbound",
             "properties": {
               "priority": 1010,
-              "sourceAddressPrefix": "[parameters('clientIPAddress')]",
+              "sourceAddressPrefixes": "[split(replace(parameters('clientIPAddressList'),' ', ''), ',')]",
               "protocol": "Tcp",
               "destinationPortRange": "[concat(variables('startPort'), '-', variables('finalPort'))]",
               "access": "Allow",
@@ -593,7 +618,7 @@
         "[resourceId('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
       ],
       "tags": "[variables('tagsForVM')]",
-      "plan": "[variables('plan')]",
+      "plan": "[if(empty(parameters('imageId')), variables('plan') , null())]",
       "identity": {
         "type": "SystemAssigned"
       },
@@ -671,7 +696,7 @@
         "tier": "Standard",
         "capacity": "[parameters('numWorkerNodes')]"
       },
-      "plan": "[variables('plan')]",
+      "plan": "[if(empty(parameters('imageId')), variables('plan') , null())]",
       "properties": {
         "overprovision": false,
         "upgradepolicy": {
