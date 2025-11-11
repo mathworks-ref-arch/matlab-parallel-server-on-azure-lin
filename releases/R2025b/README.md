@@ -8,7 +8,7 @@ Click the **Deploy to Azure** button below to deploy the cloud resources on Azur
 | --- | --- |
 | Use this option to deploy the resources in a new virtual network.<br><br><a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmathworks-ref-arch%2Fmatlab-parallel-server-on-azure-lin%2Fmaster%2Freleases%2FR2025b%2Fazuredeploy-R2025b.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a></br></br> | Use this option to deploy the resources in an existing virtual network. <br><br><a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmathworks-ref-arch%2Fmatlab-parallel-server-on-azure-lin%2Fmaster%2Freleases%2FR2025b%2Fazuredeploy-existing-vnet-R2025b.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a></br></br> |
 
-> Cluster Platform: Ubuntu Server 22.04 LTS
+> Cluster Platform: Ubuntu Server 24.04 LTS
 
 > MATLAB&reg; Release: R2025b
 
