@@ -209,6 +209,13 @@
         "6-Highest"
       ],
       "defaultValue": "2-Low"
+    },
+    "imageID": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional Resource ID of a custom managed image in the target region. To use a prebuilt MathWorks image instead, leave this field empty. If you customize the build, for example by removing or modifying the included scripts, this can make the image incompatible with the provided ARM template. To ensure compatibility, modify the ARM template or image accordingly."
+      }
     }
   },
   "variables": {
@@ -231,12 +238,16 @@
     "offer": "matlab-parallel-server-ref-arch-vm-offer",
     "sku": "matlab-parallel-server-ref-arch-r2024b-vm-sku",
     "version": "1.0.2",
-    "imageReference": {
+    "imageResourceID": {
+      "id": "[parameters('imageID')]"
+    },
+    "defaultImageReference": {
       "publisher": "[variables('publisher')]",
       "offer": "[variables('offer')]",
       "sku": "[variables('sku')]",
       "version": "[variables('version')]"
     },
+    "imageReference": "[if(empty(parameters('imageId')), variables('defaultImageReference'), variables('imageResourceID'))]",
     "plan": {
       "name": "[variables('sku')]",
       "publisher": "[variables('publisher')]",
@@ -593,7 +604,7 @@
         "[resourceId('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
       ],
       "tags": "[variables('tagsForVM')]",
-      "plan": "[variables('plan')]",
+      "plan": "[if(empty(parameters('imageId')), variables('plan') , null())]",
       "identity": {
         "type": "SystemAssigned"
       },
@@ -671,7 +682,7 @@
         "tier": "Standard",
         "capacity": "[parameters('numWorkerNodes')]"
       },
-      "plan": "[variables('plan')]",
+      "plan": "[if(empty(parameters('imageId')), variables('plan') , null())]",
       "properties": {
         "overprovision": false,
         "upgradepolicy": {

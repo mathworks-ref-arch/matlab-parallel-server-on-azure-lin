@@ -111,6 +111,20 @@
         "description": "Choose the password for the admin user of the cluster. This password and the chosen admin username are required to log in into any instance in the cluster using ssh. For the deployment to succeed, your password must meet Azure's password requirements. See [Password requirements when creating a VM](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/faq?WT.mc_id=Portal-fx#what-are-the-password-requirements-when-creating-a-vm-) for information on the password requirements."
       }
     },
+    "virtualNetworkResourceID": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "(Optional) Resource ID of an existing virtual network to deploy your VM into. You can find this under the Properties of your virtual network. If left empty, a new virtual network with a default subnet is created."
+      }
+    },
+    "subnetName": {
+      "defaultValue": "",
+      "type": "String",
+      "metadata": {
+        "description": "(Optional) Name of an existing subnet within your chosen virtual network to deploy your VM into. Required if a Virtual Network Resource ID is specified."
+      }
+    },
     "licenseServer": {
       "defaultValue": "",
       "type": "String",
@@ -225,7 +239,7 @@
     "namingPrefix": "[concat(variables('fixedPrefix'), '-', variables('resourceGroupUniqueString'))]",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/24",
-    "newOrExistingVirtualNetwork": "New",
+    "newOrExistingVirtualNetwork": "[if(empty(replace(parameters('virtualNetworkResourceID'),' ','')),'New','Existing')]",
     "virtualNetworkCreateName": "[concat(variables('namingPrefix'), '-vnet')]",
     "subnetCreateName": "[concat(variables('namingPrefix'), '-subnet')]",
     "virtualNetworkName": "[if(equals(variables('newOrExistingVirtualNetwork'),'Existing'),last(split(parameters('virtualNetworkResourceID'),'/')),variables('virtualNetworkCreateName'))]",
@@ -238,7 +252,7 @@
     "publisher": "mathworks-inc",
     "offer": "matlab-parallel-server-ref-arch-vm-offer",
     "sku": "matlab-parallel-server-ref-arch-r2025b-vm-sku",
-    "version": "20252.1.25110722",
+    "version": "20252.1.25121446",
     "imageResourceID": {
       "id": "[parameters('imageID')]"
     },
@@ -280,6 +294,7 @@
     "publicIPPostfix": "pub",
     "headnodeIPName": "[concat(variables('namingPrefix'), variables('publicIPPostfix'))]",
     "dnsLabelPrefix": "[concat('azure-', variables('resourceGroupUniqueString'))]",
+    "vmssDNSLabel": "[concat(variables('vmssName'), variables('dnsLabelPrefix'))]",
     "publicIpTimeout": "20",
     "networkInterfacePostfix": "nic",
     "networkInterfaceName": "[concat(variables('headnodeMachineName'), variables('networkInterfacePostfix'))]",
@@ -304,12 +319,6 @@
       "set -x",
       "",
       "STARTUP_FOLDER=/opt/mathworks/startup",
-      "# Load startup variables",
-      "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
-      "    set -o allexport",
-      "    source ${STARTUP_FOLDER}/.env",
-      "    set +o allexport",
-      "fi",
       "",
       "# Define startup parameters",
       "[concat('export USERNAME=', parameters('adminUsername'))]",
@@ -323,6 +332,12 @@
       "[concat('export CLUSTER_LOG_LEVEL=', parameters('ClusterLogLevel'))]",
       "{{NODE_SPECIFIC_PARAMETERS}}",
       "",
+      "# Load startup variables",
+      "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
+      "    set -o allexport",
+      "    source ${STARTUP_FOLDER}/.env",
+      "    set +o allexport",
+      "fi",
       "# Decode and execute the optional user command",
       "if [[ -n \"${OPTIONAL_USER_COMMAND}\" ]]; then",
       "    echo 'Decoding and executing optional user command...'",
@@ -344,6 +359,7 @@
     ],
     "startupParametersWorker": [
       "export NODE_TYPE='WORKER'",
+      "[concat('export DOMAIN_NAME_LABEL=', variables('vmssDNSLabel'))]",
       "[concat('export USE_SPOT_INSTANCE=', parameters('UseSpotInstancesForWorkerNodes'))]"
     ],
     "clusterManagementRoleName": "[guid(resourceGroup().id, 'cluster-management-role')]",
@@ -734,7 +750,7 @@
                           },
                           "properties": {
                             "dnsSettings": {
-                              "domainNameLabel": "[concat(variables('vmssName'), variables('dnsLabelPrefix'))]"
+                              "domainNameLabel": "[variables('vmssDNSLabel')]"
                             },
                             "idleTimeoutInMinutes": "[variables('publicIpTimeout')]"
                           }

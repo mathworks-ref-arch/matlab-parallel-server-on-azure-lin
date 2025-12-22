@@ -4,9 +4,7 @@
 
 Click the **Deploy to Azure** button below to deploy the cloud resources on Azure&reg;. Doing so opens the Azure Portal in your web browser.
 
-| Create Virtual Network | Use Existing Virtual Network |
-| --- | --- |
-| Use this option to deploy the resources in a new virtual network.<br><br><a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmathworks-ref-arch%2Fmatlab-parallel-server-on-azure-lin%2Fmaster%2Freleases%2FR2025b%2Fazuredeploy-R2025b.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a></br></br> | Use this option to deploy the resources in an existing virtual network. <br><br><a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmathworks-ref-arch%2Fmatlab-parallel-server-on-azure-lin%2Fmaster%2Freleases%2FR2025b%2Fazuredeploy-existing-vnet-R2025b.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a></br></br> |
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmathworks-ref-arch%2Fmatlab-parallel-server-on-azure-lin%2Fmaster%2Freleases%2FR2025b%2Fazuredeploy-R2025b.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton"/></a>
 
 > Cluster Platform: Ubuntu Server 24.04 LTS
 
@@ -32,8 +30,8 @@ Clicking the **Deploy to Azure** button opens the "Custom deployment" page in yo
 | **Client IP Address List** | A list of comma separated IP address ranges that can be used to access the license manager. These must be valid IP CIDR ranges of the form x.x.x.x/x. Use the value &lt;your_client_ip_address&gt;/32 to restrict access to only your computer. |
 | **Admin Username** | Admin username for the cluster. To avoid any deployment errors, check the list of [disallowed values](https://docs.microsoft.com/en-us/rest/api/compute/virtual-machines/create-or-update?tabs=HTTP#osprofile) for adminUsername. |
 | **Admin Password** | Choose the password for the admin user of the cluster. This password and the chosen admin username are required to log in into any instance in the cluster using ssh. For the deployment to succeed, your password must meet Azure's password requirements. See [Password requirements when creating a VM](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/faq?WT.mc_id=Portal-fx#what-are-the-password-requirements-when-creating-a-vm-) for information on the password requirements. |
-| **Virtual Network Resource ID** | Resource ID of an existing virtual network to deploy your cluster into. You can find this ID under the properties of your virtual network. Specify this parameter only when deploying with the Existing Virtual Network option. |
-| **Subnet Name** | Name of an existing subnet within your virtual network to deploy your cluster into. Specify this parameter only when deploying with the Existing Virtual Network option. |
+| **Virtual Network Resource ID** | (Optional) Resource ID of an existing virtual network to deploy your VM into. You can find this under the Properties of your virtual network. If left empty, a new virtual network with a default subnet is created. |
+| **Subnet Name** | (Optional) Name of an existing subnet within your chosen virtual network to deploy your VM into. Required if a Virtual Network Resource ID is specified. |
 | **License Server** | License manager for MATLAB in the form port@hostname. If not specified, online licensing is used. Otherwise, the license manager must be accessible from the specified virtual network and subnets. |
 | **MJS Security Level** | Security level for the cluster. Level 0: Any user can access any jobs and tasks. Level 1: Accessing other users' jobs and tasks issues a warning. However, all users can still perform all actions. Level 2: Users must enter a password to access their jobs and tasks. The job owner can grant access to other users. |
 | **Enable Autoscaling** | Flag indicating whether instance autoscaling is enabled. For more information about autoscaling, see https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure-lin#use-autoscaling. |
@@ -55,7 +53,7 @@ When you click the **Create** button, the resources are created using Azure temp
 # Step 3. Connect to Your Cluster From MATLAB
 
 1. Clicking **Create** opens the Deployment Details page, where you can monitor the progress of your deployment. Wait for the message **Your deployment is complete**.
-2. Go to your resource group, and select the Storage Account ending with **storage**. The screen must look like the one in Figure 1.
+2. Go to your resource group, and select the Storage Account with a name prefixed by **mwstorage**. The screen must look similar to the example shown in Figure 1.
 
     ![Resource Group On Completion](../../img/Deployment_Complete_Select_Storage.png)
 
@@ -63,7 +61,7 @@ When you click the **Create** button, the resources are created using Azure temp
 
 3. Under **Data Storage** on the left panel, click **File shares** and select the file share named "shared".
 4. Click **Browse** on the left panel, then open the "cluster" folder.
-5. Download the file, `<NAME>.mlsettings`, where NAME is the name of your MATLAB Job Scheduler.
+5. Download the file, `<NAME>.mlsettings`, where `NAME` is the name of your MATLAB Job Scheduler.
 6. Open MATLAB.
 7. In the Parallel drop-down menu in the MATLAB toolstrip select **Create and Manage Clusters**.
 8. Click **Import**.
