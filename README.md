@@ -1,6 +1,6 @@
 # MATLAB Parallel Server on Microsoft Azure
 
-This repository helps you automate the process of deploying MATLAB&reg; Parallel Server&trade; and MATLAB Job Scheduler using your Azure&reg; account. 
+This repository helps you automate the process of deploying MATLAB&reg; Parallel Server&trade; and MATLAB Job Scheduler using your Azure&reg; account.
 
 Use this repository to deploy a compute cluster using compute, storage, and network resources hosted by Azure. The cloud resources are created using Azure Resource Manager (ARM) templates. For information about the architecture of this solution, see [Learn About Cluster Architecture](#learn-about-cluster-architecture).
 
@@ -15,12 +15,21 @@ Before starting, you need the following:
 * An Azure account. To configure your account to enable autoscaling (since R2022b), see [Configure Azure Account](#configure-azure-account).
 
 # Costs
+
 You are responsible for the cost of the Azure services you use when you create cloud resources using this repository. Resource settings, such as virtual machine (VM) type, affect the cost of deployment. For cost estimates, see the pricing pages for each Azure service you use. Prices are subject to change.
 
 # Deployment Steps
 
-To view instructions for deploying the MATLAB Parallel Server reference architecture, select a MATLAB release.
+By default, the MATLAB Parallel Server reference architectures below launch prebuilt machine images, described in [Learn about Cluster Architecture](#learn-about-cluster-architecture).
+Using a prebuilt machine image is the easiest way to deploy a MATLAB Parallel Server reference architecture.
+Prebuilt images are provided for the five most recent MATLAB releases.
+Alternatively, to build your own machine image,
+see [Build and Deploy Your Own Machine Image](#build-and-deploy-your-own-machine-image).
+You can also use this workflow to install an earlier MATLAB release.
 
+## Deploy Prebuilt Machine Image
+
+To view instructions for deploying the MATLAB Parallel Server reference architecture, select a MATLAB release.
 | Linux | Windows |
 | ----- | ------- |
 | [R2025b](releases/R2025b/README.md) | [R2025b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2025b/README.md) |
@@ -38,6 +47,21 @@ To view instructions for deploying the MATLAB Parallel Server reference architec
 |  | [R2019b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2019b/README.md) |
 |  | [R2019a\_and\_older](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2019a_and_older/README.md) |
 
+The above instructions allow you to launch instances based on the latest prebuilt MathWorks&reg; Azure Virtual Machine (VM) Images.
+
+## Build and Deploy Your Own Machine Image
+
+For details of the scripts which form the basis of the MathWorks Linux Azure VM Image build process,
+see [Build Your Own Machine Image](./packer/v1).
+You can use these scripts to build a custom Linux VM image for running MATLAB Parallel Server on Azure.
+You can then deploy this custom image with the MathWorks infrastructure as code (IaC) templates.
+You can customize the MATLAB release which is installed as part of this custom build.
+This includes MATLAB releases supported by the prebuilt images, as well as earlier MATLAB releases.
+For more details,
+see [Customize MATLAB Parallel Server Release to Install](./packer/v1#customize-matlab-parallel-server-release-to-install).
+Platform engineering teams can use these scripts to take advantage of optimizations MathWorks has developed
+for running MathWorks products in the cloud.
+For more details, see [What are the advantages of building images with MathWorks scripts?](#what-are-the-advantages-of-building-images-with-mathworks-scripts)
 
 # Learn About Cluster Architecture
 
@@ -98,13 +122,13 @@ Microsoft Azure is a set of cloud services that allow you to build, deploy, and 
 
 ### What skills or specializations do I need to use this reference architecture?
 
-No programming or cloud experience required. 
+No programming or cloud experience required.
 
 ### How long does it take to deploy the reference architecture?
 
 If you already have an Azure account set up and ready to use, you can start a MATLAB Parallel Server reference architecture cluster in less than 15 minutes. Startup time varies depending on the size of your cluster.
 
-### How do I manage limits for Azure services? 
+### How do I manage limits for Azure services?
 
 For information about setting quotas, see [Azure subscription and service limits](https://learn.microsoft.com/azure/azure-resource-manager/management/azure-subscription-service-limits).
 
@@ -116,7 +140,7 @@ Before enabling Spot Virtual Machines, consider these aspects:
 
 * Pricing: Spot Virtual Machines offer discounts compared to on-demand virtual machines. The actual discount depends on the available unused capacity of the virtual machines within the availability zone (AZ). For more details, see the [Azure documentation](https://azure.microsoft.com/pricing/details/virtual-machines/linux/).
 
-* Behavior of your cluster when Azure reclaims a Spot Virtual Machine: Spot Virtual Machines are used only for the worker nodes, whereas the head node always uses an on-demand virtual machine. This behavior protects your user job and task information from being lost when a virtual machine is reclaimed by Azure. Jobs in the queue are run when a new worker instance is available. For details on how jobs are run, refer to [How Parallel Computing Toolbox Runs a Job](https://www.mathworks.com/help/parallel-computing/how-parallel-computing-products-run-a-job.html). If a Spot VM for a worker is interrupted when it is running a task, the task is marked as failed. You can set the maximum number of times to rerun a failed task using the `MaximumRetries` property. For more details, see [Access task properties and behaviors](https://www.mathworks.com/help/parallel-computing/parallel.task.html). 
+* Behavior of your cluster when Azure reclaims a Spot Virtual Machine: Spot Virtual Machines are used only for the worker nodes, whereas the head node always uses an on-demand virtual machine. This behavior protects your user job and task information from being lost when a virtual machine is reclaimed by Azure. Jobs in the queue are run when a new worker instance is available. For details on how jobs are run, refer to [How Parallel Computing Toolbox Runs a Job](https://www.mathworks.com/help/parallel-computing/how-parallel-computing-products-run-a-job.html). If a Spot VM for a worker is interrupted when it is running a task, the task is marked as failed. You can set the maximum number of times to rerun a failed task using the `MaximumRetries` property. For more details, see [Access task properties and behaviors](https://www.mathworks.com/help/parallel-computing/parallel.task.html).
 
 * The following VM sizes are not supported for Azure Spot Virtual Machines:
     * B-series
@@ -124,11 +148,19 @@ Before enabling Spot Virtual Machines, consider these aspects:
 
 For more information about the limitations of using Spot Virtual Machines, see [Azure Spot Virtual Machines for Virtual Machine Scale Sets](https://learn.microsoft.com/azure/virtual-machine-scale-sets/use-spot).
 
+### What are the advantages of building images with MathWorks scripts?
+
+Images built with MathWorks scripts are optimized and tested for MathWorks workflows.
+The images are deployed by MathWorks Azure Resource Manager (ARM) templates following Azure best practices.
+The warmup scripts found in [startup](./packer/v1/startup) allow you to start MATLAB faster. The ARM template uses these scripts to automatically initialize MathWorks files on the instance. These scripts are automatically included in both the prebuilt images and the images that you build using the instructions in [Deployment Steps](#deployment-steps).
+Without the optimization scripts, starting a large software application, such as MATLAB, for the first time can potentially take tens of minutes. Subsequent starts of the large software application will be faster.
+
 # Technical Support
+
 If you need help or have a request for additional features or capabilities, contact [MathWorks Technical Support](https://www.mathworks.com/support/contact_us.html).
 
 ----
 
-Copyright 2018-2025 The MathWorks, Inc.
+Copyright 2018-2026 The MathWorks, Inc.
 
 ----
