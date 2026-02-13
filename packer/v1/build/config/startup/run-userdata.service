@@ -1,0 +1,18 @@
+# Copyright 2022-2024 The MathWorks, Inc.
+
+# This service runs the userdata at every reboot of the headnode for MATLAB Parallel Server.
+# Running the userdata configures and starts MJS on headnode boot.
+
+[Unit]
+Description=Service to trigger the userdata at every reboot of the MATLAB Parallel Server headnode.
+After=network.target
+After=default.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c "curl -s -H Metadata:true --noproxy '*' 'http://169.254.169.254/metadata/instance/compute/userData?api-version=2021-01-01&format=text' | base64 -d | bash"
+TimeoutStartSec=0
+
+[Install]
+WantedBy=default.target

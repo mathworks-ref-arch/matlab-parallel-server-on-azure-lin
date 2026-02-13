@@ -1,0 +1,20 @@
+# Copyright 2022-2026 The MathWorks, Inc.
+[Unit]
+Description=Run custom scripts at shutdown
+Wants=network.target
+After=syslog.service network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+# timeout for each script
+TimeoutStopSec=180
+# "-" prefix tells systemd to continue to next script in case this one fails
+ExecStop=-/opt/mathworks/shutdown/delete-tmp-fileshare.sh
+ExecStop=/opt/mathworks/shutdown/set-mw-state-down.sh
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target
