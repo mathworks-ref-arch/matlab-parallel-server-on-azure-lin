@@ -74,6 +74,7 @@ This diagram illustrates the cluster architecture created by the template. When 
 The following resources are created.
 
 ### Networking Resources
+
 * Virtual network (Microsoft.Network/virtualNetworks): The virtual network includes the following components:
     * Subnet (Microsoft.Network/virtualNetworks/subnets)
     * Network security group (Microsoft.Network/networkSecurityGroups)
@@ -82,11 +83,13 @@ The following resources are created.
     * Public IP address (Microsoft.Network/publicIPAddresses)
 
 ### Compute Resources
+
 * Head node VM (Microsoft.Compute/virtualMachines): A compute VM for the cluster head node. The MATLAB install is part of the VM image, and the job database is stored either locally on the root volume or on a separate data disk. The head node communicates with the clients using a secure SSL connection.
   * Database volume (optional): An optional separate data disk to store the MATLAB Job Scheduler job database.
 * Worker scaling set (Microsoft.Compute/virtualMachineScaleSets): A scale set for worker VMs to be deployed into. Clients and workers communicate using a secure SSL connection.
 
 ### Storage Resources
+
 * Storage account (Microsoft.Storage/storageAccounts): A premium locally redundant storage (LRS) account that hosts the file share used to distribute files amongst cluster VMs.
 * File share created inside storage account: A file share inside the storage account.
     * Contains the shared secret created by the head node for all worker VMs. The worker VMs require the shared secret to register and establish a secure connection with the job scheduler.
@@ -104,6 +107,7 @@ To check if you have these permissions, see [Check access for a user to Azure re
 If you do not have these permissions, the administrator or [owners of the subscription](https://learn.microsoft.com/azure/role-based-access-control/role-assignments-list-portal#list-owners-of-a-subscription) can either:
 
 1. Assign you the built-in Azure role [User Access Administrator](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#user-access-administrator) in addition to your existing role. See [Assign Azure roles using the Azure portal](https://learn.microsoft.com/azure/role-based-access-control/role-assignments-portal).
+
 2. Create a custom role containing these permissions and attach it along with your existing role. See [Create or update Azure custom roles using the Azure portal](https://learn.microsoft.com/azure/role-based-access-control/custom-roles-portal).
 
 ## FAQ
@@ -145,7 +149,7 @@ Before enabling Spot Virtual Machines, consider these aspects:
 * The following VM sizes are not supported for Azure Spot Virtual Machines:
     * B-series
     * Promo versions of any size (such as the Dv2, NV, NC, and H promo sizes)
-
+    
 For more information about the limitations of using Spot Virtual Machines, see [Azure Spot Virtual Machines for Virtual Machine Scale Sets](https://learn.microsoft.com/azure/virtual-machine-scale-sets/use-spot).
 
 ### What are the advantages of building images with MathWorks scripts?
