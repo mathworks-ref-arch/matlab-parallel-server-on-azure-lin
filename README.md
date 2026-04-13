@@ -32,6 +32,7 @@ You can also use this workflow to install an earlier MATLAB release.
 To view instructions for deploying the MATLAB Parallel Server reference architecture, select a MATLAB release.
 | Linux | Windows |
 | ----- | ------- |
+| [R2026a](releases/R2026a/README.md) | [R2026a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2026a/README.md) |
 | [R2025b](releases/R2025b/README.md) | [R2025b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2025b/README.md) |
 | [R2025a](releases/R2025a/README.md) | [R2025a](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2025a/README.md) |
 | [R2024b](releases/R2024b/README.md) | [R2024b](https://github.com/mathworks-ref-arch/matlab-parallel-server-on-azure/tree/master/releases/R2024b/README.md) |
