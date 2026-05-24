@@ -15,14 +15,14 @@ from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource.resources.models import TagsPatchResource
 from azure.mgmt.compute.models import (
     VirtualMachineScaleSet,
-    VirtualMachineScaleSetVMListResult,
+    VirtualMachineScaleSetVM,
     VirtualMachineScaleSetVMInstanceRequiredIDs,
 )
 
 import requests
 import sys, re
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 IMDS_URL = "http://169.254.169.254"
 
@@ -148,7 +148,13 @@ class AzureInterface(AbstractCloudInterface):
                 current_nodes=sum(
                     1
                     for vm in self._get_vm_instances()
-                    if vm.provisioning_state in ("Creating", "Succeeded")
+                    if (
+                        vm.provisioning_state.lower() == "creating"
+                        or (
+                            vm.provisioning_state.lower() == "succeeded"
+                            and self._get_power_state(vm) in ("starting", "running")
+                        )
+                    )
                 ),
                 workers_per_node=self._workers_per_node,
             )
@@ -441,10 +447,10 @@ class AzureInterface(AbstractCloudInterface):
 
         return None
 
-    def _get_vm_instances(self) -> Iterable[VirtualMachineScaleSetVMListResult]:
+    def _get_vm_instances(self) -> Iterable[VirtualMachineScaleSetVM]:
         try:
             vms = self._compute_client.virtual_machine_scale_set_vms.list(
-                self._resource_group, self._vmss_name
+                self._resource_group, self._vmss_name, expand="instanceView"
             )
             return vms
 
@@ -452,6 +458,18 @@ class AzureInterface(AbstractCloudInterface):
             print(e, file=sys.stderr)
 
         return []
+    
+    def _get_power_state(self, vm: VirtualMachineScaleSetVM) -> Optional[str]:
+        """Extract PowerState from instance view statuses.
+           Instance View contains statuses in the form 
+           'PowerState/running', etc.
+        """
+        if vm.instance_view and vm.instance_view.statuses:
+            for status in vm.instance_view.statuses:
+                if status.code and status.code.startswith("PowerState/"):
+                    return status.code.split("/", 1)[1]
+                
+        return None
 
     def _get_host_to_id(self) -> dict:
         """Get a mapping between instances private hostname

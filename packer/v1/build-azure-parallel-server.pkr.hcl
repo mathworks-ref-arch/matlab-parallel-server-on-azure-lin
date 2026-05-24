@@ -84,6 +84,7 @@ variable "BUILD_SCRIPTS" {
     "install-polypsace.sh",
     "setup-spkg-root.sh",
     "install-support-packages.sh",
+    "install-jre.sh",
     "setup-startup-accelerator.sh"
   ]
   description = "The list of installation scripts Packer will use when building the image."
