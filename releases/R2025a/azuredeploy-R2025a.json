@@ -90,12 +90,43 @@
         "description": "Size in GB of the persisted storage to mount across the cluster. The storage has a default and minimum capacity of 100 GB and can expand to 100 TB. If set to 0, no persisted storage is created."
       }
     },
+    "virtualNetworkResourceID": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "(Optional) Resource ID of an existing virtual network to deploy your cluster into. You can find this under the Properties of your virtual network. If left empty, a new virtual network with a default subnet is created."
+      }
+    },
+    "subnetName": {
+      "defaultValue": "",
+      "type": "String",
+      "metadata": {
+        "description": "(Optional) Name of an existing subnet within your chosen virtual network to deploy your cluster into. Required if a Virtual Network Resource ID is specified."
+      }
+    },
+    "createPublicIPAddress": {
+      "defaultValue": "Yes",
+      "type": "String",
+      "allowedValues": [
+        "Yes",
+        "No"
+      ],
+      "metadata": {
+        "description": "Choose whether to attach Public IPv4 addresses to the head-node and worker nodes. For details about using a private network configuration, see [Configure Private Network](#configure-private-network)."
+      }
+    },
     "clientIPAddressList": {
       "type": "string",
       "defaultValue": "",
-      "minLength": 7,
       "metadata": {
-        "description": "A list of comma separated IP address ranges that can be used to access the license manager. These must be valid IP CIDR ranges of the form x.x.x.x/x. Use the value &lt;your_client_ip_address&gt;/32 to restrict access to only your computer."
+        "description": "A list of comma separated IP address ranges that can be used to access the license manager. These must be valid IP CIDR ranges of the form x.x.x.x/x. Use the value <your_client_ip_address>/32 to restrict access to only your computer."
+      }
+    },
+    "customDNSSearchSuffix": {
+      "defaultValue": "",
+      "type": "String",
+      "metadata": {
+        "description": "(Optional) If deploying in an existing virtual network with a custom DNS setup, enter the DNS search suffix to use, for example corp.mycompany.internal. This enables headnode and workers to identify themselves using full DNS names of the form: <computer_name>.corp.mycompany.internal. Ensure that the cluster nodes are auto-registered with the DNS service to allow name resolution. If left empty, head node and worker nodes will use their Private IPv4 addresses for communication."
       }
     },
     "adminUsername": {
@@ -192,7 +223,7 @@
       "defaultValue": "",
       "type": "String",
       "metadata": {
-        "description": "Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AZURE, use this command excluding the angle brackets: &lt;echo -e \"export CLOUD=AZURE\" &#124; sudo tee -a /etc/profile.d/setenvvar.sh&gt;. To run an external script, use this command excluding the angle brackets: &lt;wget -O /tmp/my-script.sh \"https://example.com/script.sh\" && bash /tmp/my-script.sh&gt;. Find the logs at '/var/log/mathworks/user-data.log' and '/var/log/mathworks/startup.log'."
+        "description": "Provide an optional inline shell command to run on machine launch. For example, to set an environment variable CLOUD=AZURE, use this command excluding the angle brackets: <echo -e \"export CLOUD=AZURE\" &#124; sudo tee -a /etc/profile.d/setenvvar.sh>. To run an external script, use this command excluding the angle brackets: <wget -O /tmp/my-script.sh \"https://example.com/script.sh\" && bash /tmp/my-script.sh>. Find the logs at '/var/log/mathworks/user-data.log' and '/var/log/mathworks/startup.log'."
       }
     },
     "ClusterLogLevel": {
@@ -225,7 +256,8 @@
     "namingPrefix": "[concat(variables('fixedPrefix'), '-', variables('resourceGroupUniqueString'))]",
     "addressPrefix": "10.0.0.0/16",
     "subnetPrefix": "10.0.0.0/24",
-    "newOrExistingVirtualNetwork": "New",
+    "allowDefaultInternetAccess": true,
+    "newOrExistingVirtualNetwork": "[if(empty(replace(parameters('virtualNetworkResourceID'),' ','')),'New','Existing')]",
     "virtualNetworkCreateName": "[concat(variables('namingPrefix'), '-vnet')]",
     "subnetCreateName": "[concat(variables('namingPrefix'), '-subnet')]",
     "virtualNetworkName": "[if(equals(variables('newOrExistingVirtualNetwork'),'Existing'),last(split(parameters('virtualNetworkResourceID'),'/')),variables('virtualNetworkCreateName'))]",
@@ -238,7 +270,7 @@
     "publisher": "mathworks-inc",
     "offer": "matlab-parallel-server-ref-arch-vm-offer",
     "sku": "matlab-parallel-server-ref-arch-r2025a-vm-sku",
-    "version": "20251.1.25051445",
+    "version": "20251.1.26050643",
     "imageResourceID": {
       "id": "[parameters('imageID')]"
     },
@@ -280,6 +312,7 @@
     "publicIPPostfix": "pub",
     "headnodeIPName": "[concat(variables('namingPrefix'), variables('publicIPPostfix'))]",
     "dnsLabelPrefix": "[concat('azure-', variables('resourceGroupUniqueString'))]",
+    "vmssDNSLabel": "[concat(variables('vmssName'), variables('dnsLabelPrefix'))]",
     "publicIpTimeout": "20",
     "networkInterfacePostfix": "nic",
     "networkInterfaceName": "[concat(variables('headnodeMachineName'), variables('networkInterfacePostfix'))]",
@@ -293,9 +326,13 @@
       "name": "Premium_LRS",
       "tier": "Premium"
     },
+    "enablePublicIP": "[equals(parameters('createPublicIPAddress'), 'Yes')]",
+    "customDNSSuffix": "[trim(parameters('customDNSSearchSuffix'))]",
+    "customDNSEnabled": "[not(empty(variables('customDNSSuffix')))]",
+    "customHeadNodeName": "[concat(variables('headnodeMachineName'), '.', variables('customDNSSuffix'))]",
     "userDataScript": [
       "#!/usr/bin/env bash",
-      "# Copyright 2024 The MathWorks, Inc.",
+      "# Copyright 2024-2025 The MathWorks, Inc.",
       "",
       "# Redirect all output to a log file",
       "mkdir -p /var/log/mathworks",
@@ -304,12 +341,6 @@
       "set -x",
       "",
       "STARTUP_FOLDER=/opt/mathworks/startup",
-      "# Load startup variables",
-      "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
-      "    set -o allexport",
-      "    source ${STARTUP_FOLDER}/.env",
-      "    set +o allexport",
-      "fi",
       "",
       "# Define startup parameters",
       "[concat('export USERNAME=', parameters('adminUsername'))]",
@@ -319,10 +350,18 @@
       "[concat('export SECURITY_LEVEL=', parameters('MJSSecurityLevel'))]",
       "[concat('export SCHEDULING_ALGORITHM=', parameters('MJSSchedulingAlgorithm'))]",
       "[concat('export AZURE_STORAGE_ACCOUNT=', variables('storageAccountName'))]",
+      "[concat('export CUSTOM_DNS_SUFFIX=', variables('customDNSSuffix'))]",
+      "[concat('export ENABLE_PUBLIC_IP=', parameters('createPublicIPAddress'))]",
       "[concat('export OPTIONAL_USER_COMMAND=''', base64(parameters('optionalUserCommand')), '''')]",
       "[concat('export CLUSTER_LOG_LEVEL=', parameters('ClusterLogLevel'))]",
       "{{NODE_SPECIFIC_PARAMETERS}}",
       "",
+      "# Load startup variables",
+      "if [[ -r ${STARTUP_FOLDER}/.env ]]; then",
+      "    set -o allexport",
+      "    source ${STARTUP_FOLDER}/.env",
+      "    set +o allexport",
+      "fi",
       "# Decode and execute the optional user command",
       "if [[ -n \"${OPTIONAL_USER_COMMAND}\" ]]; then",
       "    echo 'Decoding and executing optional user command...'",
@@ -344,6 +383,7 @@
     ],
     "startupParametersWorker": [
       "export NODE_TYPE='WORKER'",
+      "[concat('export DOMAIN_NAME_LABEL=', variables('vmssDNSLabel'))]",
       "[concat('export USE_SPOT_INSTANCE=', parameters('UseSpotInstancesForWorkerNodes'))]"
     ],
     "clusterManagementRoleName": "[guid(resourceGroup().id, 'cluster-management-role')]",
@@ -362,6 +402,9 @@
       "mwWorkersPerNode": "[parameters('numWorkersPerNode')]",
       "mwWorkerIdleTimeoutMinutes": 10
     },
+    "vmssNicReadPermission": [
+      "Microsoft.Compute/virtualMachineScaleSets/networkInterfaces/read"
+    ],
     "vmssManagementPermissions": [
       "Microsoft.Compute/virtualMachineScaleSets/read",
       "Microsoft.Compute/virtualMachineScaleSets/write",
@@ -374,6 +417,48 @@
       "Microsoft.Resources/tags/write",
       "Microsoft.Compute/virtualMachines/read",
       "Microsoft.Compute/virtualMachines/deallocate/action"
+    ],
+    "clusterManagementPermissions": "[if(and(not(variables('enablePublicIP')), not(variables('customDNSEnabled'))), concat(variables('vmssManagementPermissions'), variables('vmssNicReadPermission')), variables('vmssManagementPermissions'))]",
+    "defaultSecurityRules": [
+      {
+        "name": "default-allow-ssh",
+        "properties": {
+          "priority": 1000,
+          "sourceAddressPrefixes": "[split(replace(parameters('clientIPAddressList'),' ', ''), ',')]",
+          "protocol": "Tcp",
+          "destinationPortRange": "22",
+          "access": "Allow",
+          "direction": "Inbound",
+          "sourcePortRange": "*",
+          "destinationAddressPrefix": "*"
+        }
+      },
+      {
+        "name": "mathworks-job-scheduler-inbound",
+        "properties": {
+          "priority": 1010,
+          "sourceAddressPrefixes": "[split(replace(parameters('clientIPAddressList'),' ', ''), ',')]",
+          "protocol": "Tcp",
+          "destinationPortRange": "[concat(variables('startPort'), '-', variables('finalPort'))]",
+          "access": "Allow",
+          "direction": "Inbound",
+          "sourcePortRange": "*",
+          "destinationAddressPrefix": "*"
+        }
+      },
+      {
+        "name": "allow-internal-traffic",
+        "properties": {
+          "priority": 1020,
+          "sourceAddressPrefix": "VirtualNetwork",
+          "protocol": "Tcp",
+          "destinationPortRange": "*",
+          "access": "Allow",
+          "direction": "Inbound",
+          "sourcePortRange": "*",
+          "destinationAddressPrefix": "VirtualNetwork"
+        }
+      }
     ]
   },
   "resources": [
@@ -394,7 +479,8 @@
           {
             "name": "[variables('subnetCreateName')]",
             "properties": {
-              "addressPrefix": "[variables('subnetPrefix')]"
+              "addressPrefix": "[variables('subnetPrefix')]",
+              "defaultOutboundAccess": "[variables('allowDefaultInternetAccess')]"
             }
           }
         ]
@@ -402,6 +488,10 @@
     },
     {
       "type": "Microsoft.Network/publicIPAddresses",
+      "condition": "[variables('enablePublicIP')]",
+      "sku": {
+        "name": "Standard"
+      },
       "apiVersion": "2023-04-01",
       "name": "[variables('headnodeIPName')]",
       "location": "[resourceGroup().location]",
@@ -522,47 +612,7 @@
       ],
       "tags": "[variables('tagsForAll')]",
       "properties": {
-        "securityRules": [
-          {
-            "name": "default-allow-ssh",
-            "properties": {
-              "priority": 1000,
-              "sourceAddressPrefixes": "[split(replace(parameters('clientIPAddressList'),' ', ''), ',')]",
-              "protocol": "Tcp",
-              "destinationPortRange": "22",
-              "access": "Allow",
-              "direction": "Inbound",
-              "sourcePortRange": "*",
-              "destinationAddressPrefix": "*"
-            }
-          },
-          {
-            "name": "mathworks-job-scheduler-inbound",
-            "properties": {
-              "priority": 1010,
-              "sourceAddressPrefixes": "[split(replace(parameters('clientIPAddressList'),' ', ''), ',')]",
-              "protocol": "Tcp",
-              "destinationPortRange": "[concat(variables('startPort'), '-', variables('finalPort'))]",
-              "access": "Allow",
-              "direction": "Inbound",
-              "sourcePortRange": "*",
-              "destinationAddressPrefix": "*"
-            }
-          },
-          {
-            "name": "allow-internal-traffic",
-            "properties": {
-              "priority": 1020,
-              "sourceAddressPrefix": "VirtualNetwork",
-              "protocol": "Tcp",
-              "destinationPortRange": "*",
-              "access": "Allow",
-              "direction": "Inbound",
-              "sourcePortRange": "*",
-              "destinationAddressPrefix": "VirtualNetwork"
-            }
-          }
-        ]
+        "securityRules": "[if(empty(parameters('clientIPAddressList')), createArray(), variables('defaultSecurityRules'))]"
       }
     },
     {
@@ -584,9 +634,7 @@
                 "id": "[variables('subnet')]"
               },
               "privateIPAllocationMethod": "Dynamic",
-              "publicIpAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('headnodeIPName'))]"
-              }
+              "publicIpAddress": "[if(variables('enablePublicIP'), createObject('id', resourceId('Microsoft.Network/publicIpAddresses', variables('headnodeIPName'))),json('null'))]"
             }
           }
         ],
@@ -630,7 +678,7 @@
             }
           ]
         },
-        "userData": "[base64(replace(join(variables('userDataScript'), '\n'), '{{NODE_SPECIFIC_PARAMETERS}}', concat(join(variables('startupParametersHeadnode'), '\n'), '\nexport AZURE_STORAGE_KEY=', listKeys(variables('storageAccountName'), '2023-01-01').keys[0].value, '\nexport HEADNODE_HOSTNAME=', reference(variables('headnodeIPName')).dnsSettings.fqdn)))]"
+        "userData": "[base64(replace(join(variables('userDataScript'), '\n'), '{{NODE_SPECIFIC_PARAMETERS}}', concat(join(variables('startupParametersHeadnode'), '\n'), '\nexport AZURE_STORAGE_KEY=', listKeys(variables('storageAccountName'), '2024-01-01').keys[0].value, '\nexport HEADNODE_HOSTNAME=', if(variables('enablePublicIP'), reference(variables('headnodeIPName')).dnsSettings.fqdn, if(variables('customDNSEnabled'), variables('customHeadNodeName'), reference(variables('networkInterfaceName')).ipConfigurations[0].properties.privateIPAddress)))))]"
       }
     },
     {
@@ -646,7 +694,7 @@
         "description": "Grants access to manage VMSS and VMs.",
         "permissions": [
           {
-            "actions": "[union(variables('headnodeManagementPermissions'), variables('vmssManagementPermissions'))]"
+            "actions": "[union(variables('headnodeManagementPermissions'), variables('clusterManagementPermissions'))]"
           }
         ],
         "roleName": "[concat('Cluster Orchestrator - ', resourceGroup().name)]",
@@ -724,15 +772,7 @@
                         "subnet": {
                           "id": "[variables('subnet')]"
                         },
-                        "publicIpAddressConfiguration": {
-                          "name": "[variables('publicIpPostfix')]",
-                          "properties": {
-                            "dnsSettings": {
-                              "domainNameLabel": "[concat(variables('vmssName'), variables('dnsLabelPrefix'))]"
-                            },
-                            "idleTimeoutInMinutes": "[variables('publicIpTimeout')]"
-                          }
-                        }
+                        "publicIpAddressConfiguration": "[if(variables('enablePublicIP'), createObject('name', variables('publicIpPostfix'), 'sku', createObject('name', 'Standard'), 'properties', createObject('dnsSettings', createObject('domainNameLabel', variables('vmssDNSLabel')), 'idleTimeoutInMinutes', variables('publicIpTimeout'))), json('null'))]"
                       }
                     }
                   ],
@@ -743,7 +783,7 @@
               }
             ]
           },
-          "userData": "[base64(replace(join(variables('userDataScript'), '\n'), '{{NODE_SPECIFIC_PARAMETERS}}', concat(join(variables('startupParametersWorker'), '\n'), '\nexport AZURE_STORAGE_KEY=', listKeys(variables('storageAccountName'), '2023-01-01').keys[0].value, '\nexport HEADNODE_HOSTNAME=', reference(variables('headnodeIPName')).dnsSettings.fqdn, '\nexport HEADNODE_LOCAL_IP=', reference(variables('networkInterfaceName')).ipConfigurations[0].properties.privateIPAddress)))]"
+          "userData": "[base64(replace(join(variables('userDataScript'), '\n'), '{{NODE_SPECIFIC_PARAMETERS}}', concat(join(variables('startupParametersWorker'), '\n'), '\nexport AZURE_STORAGE_KEY=', listKeys(variables('storageAccountName'), '2024-01-01').keys[0].value, '\nexport HEADNODE_HOSTNAME=', if(variables('enablePublicIP'), reference(variables('headnodeIPName')).dnsSettings.fqdn, if(variables('customDNSEnabled'), variables('customHeadNodeName'), reference(variables('networkInterfaceName')).ipConfigurations[0].properties.privateIPAddress)), '\nexport HEADNODE_LOCAL_IP=', reference(variables('networkInterfaceName')).ipConfigurations[0].properties.privateIPAddress)))]"
         }
       }
     },
