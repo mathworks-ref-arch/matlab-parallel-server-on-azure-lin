@@ -221,6 +221,8 @@ If your resource group fails to deploy, check the **Deployments** section of the
 
 If the resource group deployed successfully but you are unable to validate the cluster, check the logs on the instances to diagnose the error. The logs are output to /var/log on the instance nodes; the files of interest are cloud-init.log, cloud-init-output.log and all the logs under /var/log/mjs and /var/log/mathworks.
 
+If your cluster is unable to create new workers, you encounter scaling errors. To troubleshoot these issues, see [Resolve Scaling Issues in the Cloud](https://www.mathworks.com/help/matlab-parallel-server/resolve-scaling-issues-in-the-cloud.html).
+
 ----
 
 Copyright 2018-2026 The MathWorks, Inc.
