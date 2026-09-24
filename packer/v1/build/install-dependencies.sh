@@ -1,17 +1,45 @@
 #!/usr/bin/env bash
 
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure
 set -eou pipefail
 
+# Run apt non-interactively (no prompts) for the whole script.
+export DEBIAN_FRONTEND=noninteractive
+
+# Configure apt retry and timeout behavior.
+sudo tee /etc/apt/apt.conf.d/80-refarch-retries >/dev/null <<'APTCONF'
+Acquire::Retries "2";
+Acquire::http::Timeout "20";
+Acquire::https::Timeout "20";
+APT::Update::Error-Mode "any";
+APTCONF
+
+# Prefer the Azure mirror, fall back to archive.ubuntu.com automatically.
+# https://manpages.ubuntu.com/manpages/noble/man1/apt-transport-mirror.1.html
+sudo install -d -m 0755 /etc/apt/mirrors
+printf '%s\tpriority:%s\n' \
+  'http://azure.archive.ubuntu.com/ubuntu/' 1 \
+  'http://archive.ubuntu.com/ubuntu/'       2 |
+  sudo tee /etc/apt/mirrors/refarch-ubuntu.list >/dev/null
+
+# Point Ubuntu sources at the mirror list (handles both source layouts).
+ubuntu_source_files=(
+  /etc/apt/sources.list
+  /etc/apt/sources.list.d/*.sources
+  /etc/apt/sources.list.d/*.list
+)
+for source_file in "${ubuntu_source_files[@]}"; do
+  [[ -f "${source_file}" ]] || continue
+  sudo sed -i -E \
+    "s|https?://([[:alnum:].-]+\.)?archive\.ubuntu\.com/ubuntu/?|mirror+file:/etc/apt/mirrors/refarch-ubuntu.list|g" \
+    "${source_file}"
+done
+
 # Initialise apt
 sudo apt-get -y update
-sudo DEBIAN_FRONTEND=noninteractive apt-get \
-  -y \
-  -o Dpkg::Options::="--force-confdef" \
-  -o Dpkg::Options::="--force-confold" \
-  upgrade
+sudo apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
 
 # Ensure essential utilities are installed
 sudo apt-get -y install gcc

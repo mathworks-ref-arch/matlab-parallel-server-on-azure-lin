@@ -7,24 +7,10 @@ set -x
 
 echo "===Setting up Networking==="
 
-# Ensure that all communication with the headnode occurs on the local network.
-# The variables HEADNODE_LOCAL_IP and HEADNODE_HOSTNAME are defined during deployment and set using the ARM template.
-# HEADNODE_LOCAL_IP represents the private IPv4 address of the headnode.
-# HEADNODE_HOSTNAME is the public FQDN if public IP is enabled, else, the local hostname of the headnode machine.
-if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
-    echo "${PRIVATE_IPV4} ${HEADNODE_HOSTNAME}" >> /etc/hosts
-else
-    echo "${HEADNODE_LOCAL_IP} ${HEADNODE_HOSTNAME}" >> /etc/hosts
-fi
-
 if [[ "${NODE_TYPE}" == 'HEADNODE' ]]; then
-    # Hostname of the job manager.
-    MJS_HOSTNAME="${HEADNODE_HOSTNAME}"
     EXTERNAL_HOSTNAME="${HEADNODE_HOSTNAME}"
     INTERNAL_HOSTNAME="${HEADNODE_INTERNAL_HOSTNAME}"
 else
-    # Hostname of the worker node
-    MJS_HOSTNAME="${WORKER_INTERNAL_HOSTNAME}"
     EXTERNAL_HOSTNAME="${WORKER_EXTERNAL_HOSTNAME}"
     INTERNAL_HOSTNAME="${WORKER_INTERNAL_HOSTNAME}"
 fi
@@ -41,14 +27,25 @@ mkdir -p "${CHECKPOINT_ROOT}"
 chmod 755 "${CHECKPOINT_ROOT}"
 
 MJS_OPTS=(
-    -hostname "${MJS_HOSTNAME}"
-    -loglevel ${CLUSTER_LOG_LEVEL%%-*}
-    -enablepeerlookup
-    -sharedsecretfile ${SECRET_FILE}
     -cleanPreserveJobs
-    -sendactivitynotifications
-    -scriptroot ${MJS_BUSY_IDLE_SCRIPTS}
+    -loglevel ${CLUSTER_LOG_LEVEL%%-*}
 )
+
+if [[ "${MATLAB_RELEASE}" < 'R2023a' ]]; then
+    MJS_OPTS+=(
+        '-enablepeerlookup'
+    )
+fi
+
+# When the termination policy is set to `Never`, auto-termination is not active
+# but can be enabled after deployment. Enable activity notifications for
+# both `Never` and `When cluster is idle` to support this.
+if [[ "${TERMINATION_POLICY}" == "Never" || "${TERMINATION_POLICY}" == "When cluster is idle" ]]; then
+    MJS_OPTS+=(
+        -sendactivitynotifications
+        -scriptroot "${MJS_BUSY_IDLE_SCRIPTS}"
+    )
+fi
 
 cd "${MATLAB_ROOT}/toolbox/parallel/bin" || exit 1
 ./mjs start "${MJS_OPTS[@]}"

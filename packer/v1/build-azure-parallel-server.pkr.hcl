@@ -288,7 +288,9 @@ build {
   sources = ["source.azure-arm.Image_Builder"]
 
   provisioner "shell" {
-    inline = ["/usr/bin/cloud-init status --wait"]
+    # Retry: cloud-init on the Azure noble image sometimes exits non-zero before setup finishes.
+    max_retries = 3
+    inline      = ["/usr/bin/cloud-init status --wait"]
   }
 
   provisioner "shell" {

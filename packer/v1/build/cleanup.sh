@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2024-2025 The MathWorks, Inc.
+# Copyright 2024-2026 The MathWorks, Inc.
 
 # Exit on any failure
 set -e
@@ -30,5 +30,6 @@ sudo systemctl restart systemd-journald
 
 sudo find /usr/src -type f -name "pismo.h" -exec sed -i '/pismoworld.org/d' {} +
 
-sudo apt-get remove --purge yt-dlp
-sudo apt-get autoremove
+sudo apt-get remove --purge yt-dlp || true
+sudo apt-get remove --purge libmosquitto1 libmosquittopp1 -y || true
+sudo apt-get autoremove || true

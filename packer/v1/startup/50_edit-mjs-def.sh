@@ -111,3 +111,20 @@ if [[ -n "${SCHEDULING_ALGORITHM}" ]]; then
     fi
 fi
 
+# Ensure that all communication with the headnode occurs on the local network.
+# The variables HEADNODE_LOCAL_IP and HEADNODE_HOSTNAME are defined during deployment and set using the ARM template.
+# HEADNODE_LOCAL_IP represents the private IPv4 address of the headnode.
+# HEADNODE_HOSTNAME is the public FQDN if public IP is enabled, else, the local hostname of the headnode machine.
+if [[ ${NODE_TYPE} == 'HEADNODE' ]]; then
+    echo "${PRIVATE_IPV4} ${HEADNODE_HOSTNAME}" >> /etc/hosts
+    # Hostname of the job manager.
+    MJS_HOSTNAME="${HEADNODE_HOSTNAME}"
+else
+    echo "${HEADNODE_LOCAL_IP} ${HEADNODE_HOSTNAME}" >> /etc/hosts
+    # Hostname of the worker node
+    MJS_HOSTNAME="${WORKER_INTERNAL_HOSTNAME}"
+fi
+
+edit_mjs_def 'HOSTNAME' "${MJS_HOSTNAME}"
+
+edit_mjs_def 'SHARED_SECRET_FILE' "${SECRET_FILE}"
