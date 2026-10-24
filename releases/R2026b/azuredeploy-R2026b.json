@@ -270,7 +270,7 @@
     "publisher": "mathworks-inc",
     "offer": "matlab-parallel-server-ref-arch-vm-offer",
     "sku": "matlab-parallel-server-ref-arch-r2026b-vm-sku",
-    "version": "20262.0.1158102",
+    "version": "20262.0.1259366",
     "imageResourceID": {
       "id": "[parameters('imageID')]"
     },
